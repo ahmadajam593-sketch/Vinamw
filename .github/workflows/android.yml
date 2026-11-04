@@ -26,7 +26,7 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with: { gradle-version: 8.10.2 }
 
-      - run: gradle assembleDebug
+      - run: gradle assembleDebug -Pandroid.useAndroidX=true
         working-directory: ${{ env.PROJECT_DIR }}
         env:
           TMDB_KEY: ${{ secrets.TMDB_KEY }}
