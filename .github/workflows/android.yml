@@ -1,0 +1,37 @@
+name: Android Build
+on: [push, workflow_dispatch]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Find project (unzip if needed)
+        run: |
+          if [ -z "$(find . -name settings.gradle.kts -not -path './.git/*')" ]; then
+            for z in $(find . -name '*.zip' -not -path './.git/*'); do unzip -qo "$z"; done
+          fi
+          S=$(find . -name settings.gradle.kts -not -path './.git/*' | head -n1)
+          if [ -z "$S" ]; then echo "settings.gradle.kts not found"; exit 1; fi
+          echo "PROJECT_DIR=$(dirname "$S")" >> $GITHUB_ENV
+
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: 17 }
+
+      - name: Accept Android SDK licenses
+        run: |
+          mkdir -p "$ANDROID_HOME/licenses"
+          printf "\n24333f8a63b6825ea9c5514f83c2829b004d1fee\n8933bad161af4178b1185d1a37fbf41ea5269c55\nd56f5187479451eabf01fb78af6dfcb131a6481e\n" > "$ANDROID_HOME/licenses/android-sdk-license"
+
+      - uses: gradle/actions/setup-gradle@v4
+        with: { gradle-version: 8.10.2 }
+
+      - run: gradle assembleDebug
+        working-directory: ${{ env.PROJECT_DIR }}
+        env:
+          TMDB_KEY: ${{ secrets.TMDB_KEY }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Cinema-debug-apk
+          path: ${{ env.PROJECT_DIR }}/app/build/outputs/apk/debug/app-debug.apk
